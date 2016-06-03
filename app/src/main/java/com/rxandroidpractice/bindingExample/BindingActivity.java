@@ -17,6 +17,7 @@ import rx.android.schedulers.AndroidSchedulers;
 import rx.functions.Action1;
 import rx.functions.Func1;
 import rx.functions.Func2;
+import rx.functions.Func3;
 import rx.schedulers.Schedulers;
 
 /*Example of multiple EditText Validations combining several Observables which emits Boolean values whether or not a field was correctly completed*/
@@ -79,25 +80,16 @@ public class BindingActivity extends RxAppCompatActivity {
                            }
                 )*/;
 
-       /* rx.Observable.zip(nameStream, mailStream, new Func2<Boolean, Boolean, Boolean>() {
 
-            public Boolean call(Boolean o1, Boolean o2) {
-                return o1 && o2;
-            }
-        }).subscribeOn(AndroidSchedulers.mainThread())
-                .subscribe(new Action1<Boolean>() {
-                    @Override
-                    public void call(Boolean aBoolean) {
-                        if (aBoolean) {
-                            btRegister.setEnabled(true);
-                        }
-                    }
-                });*/
+        Observable<Boolean> passwordStream  = RxTextView.textChanges(tvPassword).subscribeOn(AndroidSchedulers.mainThread())
+                                            .debounce(400,TimeUnit.MILLISECONDS)
+                                            .compose(bindToLifecycle())
+                                            .map(charSequence -> charSequence.length()>4);
 
-        Observable.combineLatest(nameStream, mailStream, new Func2<Boolean, Boolean, Boolean>() {
+        Observable.combineLatest(nameStream, mailStream, passwordStream ,new Func3<Boolean, Boolean, Boolean, Boolean>() {
 
-            public Boolean call(Boolean o1, Boolean o2) {
-                return o1 && o2;
+            public Boolean call(Boolean o1, Boolean o2, Boolean o3) {
+                return o1 && o2 && o3;
             }
         }).observeOn(AndroidSchedulers.mainThread())
                 .subscribe(new Action1<Boolean>() {
@@ -105,6 +97,8 @@ public class BindingActivity extends RxAppCompatActivity {
             public void call(Boolean aBoolean) {
                 if (aBoolean) {
                     btRegister.setEnabled(true);
+                } else {
+                    btRegister.setEnabled(false);
                 }
             }
         });
